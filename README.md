@@ -39,7 +39,7 @@ Once the verification code is sent, Home Assistant has to extract the code and p
 
 ## Installation
 
- - Add the add-ons repository to your Home Assistant: `https://github.com/sannremy/home-assistant-edf`.
+ - Add the add-ons repository to your Home Assistant: `https://github.com/sannremy/home-assistant-edf-electricity`.
  - Install the *EDF - Electricity consumption* add-on.
  - Configure the add-on with your EDF email address.
 

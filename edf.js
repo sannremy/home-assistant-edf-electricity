@@ -4,6 +4,10 @@ const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 
 puppeteer.use(StealthPlugin());
 
+const log = (...args) => {
+  return console.log(`[${(new Date()).toISOString()}]`, ...args);
+}
+
 const addToState = (name, state, attributes) => {
   return fetch(`http://supervisor/core/api/states/${name}`, {
     method: 'POST',
@@ -74,12 +78,12 @@ const getData = async () => {
       await page.click(emailRadioSelector); // "Email"
       await page.click('#hotpcust3-next-button'); // "Suivant"
 
-      console.log('Waiting for code to be sent by email...');
+      log('Waiting for code to be sent by email...');
 
       // Wait 30 seconds for code to be sent by email
       await new Promise(r => setTimeout(r, 30000));
 
-      console.log('Getting code from Home Assistant...');
+      log('Getting code from Home Assistant...');
 
       // Get the code from Home Assistant
       const sensorReq = await fetch('http://supervisor/core/api/states/sensor.edf_code', {
@@ -93,18 +97,18 @@ const getData = async () => {
       const sensorJson = await sensorReq.json();
       const edfCode = sensorJson.state;
 
-      console.log('Code: ' + edfCode);
+      log('Code: ' + edfCode);
 
       // Type code
       await page.click('#code-seizure__field');
       await page.keyboard.type(edfCode);
 
-      console.log('Code typed');
+      log('Code typed');
 
       // Click on "Suivant"
       await page.click('#hotpcust4-next-button');
 
-      console.log('Code sent to EDF');
+      log('Code sent to EDF');
 
       // Wait for page to load
       await page.waitForNavigation({
@@ -121,13 +125,13 @@ const getData = async () => {
       });
   }
 
-  console.log('Scroll to bottom of page', page.url());
+  log('Scroll to bottom of page', page.url());
 
-  // Upstream client's console.log messages to Node console
+  // Upstream client's log messages to Node console
   page.on('console', async (msg) => {
     const msgArgs = msg.args();
     for (let i = 0; i < msgArgs.length; ++i) {
-      console.log(await msgArgs[i].jsonValue());
+      log(`[Client]`, await msgArgs[i].jsonValue());
     }
   });
 
@@ -149,14 +153,14 @@ const getData = async () => {
   });
 
   const json = await new Promise(async resolve => {
-    console.log('Set event on response for API call', page.url());
+    log('Set event on response for API call', page.url());
     page.on('response', async response => {
       if (
         response.request().resourceType() === 'xhr' &&
         response.ok() &&
         response.url().includes('https://equilibre.edf.fr/api/v2/sites/-/consumptions')
         ) {
-          console.log('Get: ' + response.url());
+          log('Get: ' + response.url());
           const json = await response.json();
 
           if (json.step === 'P1D') {
@@ -165,7 +169,7 @@ const getData = async () => {
         }
     });
 
-    console.log('Click on JOUR button', page.url());
+    log('Click on JOUR button', page.url());
 
     // Click on button
     await page.click('button[aria-label="Accéder à la vue JOUR"]');
@@ -213,7 +217,7 @@ const getData = async () => {
   );
 
   // Close browser
-  console.log('Close browser');
+  log('Close browser');
   await browser.close();
 };
 

@@ -223,65 +223,65 @@ const getData = async () => {
   // ----------------------------- GAS -----------------------------
   // ----------------------------- GAS -----------------------------
 
-  log('----- GAS -----');
+  // log('----- GAS -----');
 
-  // Check for gas
-  const jsonGas = await new Promise(async resolve => {
-    log('Set event on response for API call', page.url());
-    page.on('response', async response => {
-      if (
-        response.request().resourceType() === 'xhr' &&
-        response.ok() &&
-        response.url().includes('https://equilibre.edf.fr/api/v1/sites/-/smart-daily-gas-consumptions')
-      ) {
-        log('Get: ' + response.url());
-        const json = await response.json();
-        return resolve(json);
-      }
-    });
+  // // Check for gas
+  // const jsonGas = await new Promise(async resolve => {
+  //   log('Set event on response for API call', page.url());
+  //   page.on('response', async response => {
+  //     if (
+  //       response.request().resourceType() === 'xhr' &&
+  //       response.ok() &&
+  //       response.url().includes('https://equilibre.edf.fr/api/v1/sites/-/smart-daily-gas-consumptions')
+  //     ) {
+  //       log('Get: ' + response.url());
+  //       const json = await response.json();
+  //       return resolve(json);
+  //     }
+  //   });
 
-    log('Click on GAS button', page.url());
+  //   log('Click on GAS button', page.url());
 
-    // Click on button
-    await page.click('label[for="switch-fluid-radio-gaz"]');
-  });
+  //   // Click on button
+  //   await page.click('label[for="switch-fluid-radio-gaz"]');
+  // });
 
-  if (jsonGas.length > 0) {
-    // Sort by day (desc)
-    jsonGas.sort((a, b) => {
-      return new Date(b.day) - new Date(a.day);
-    });
+  // if (jsonGas.length > 0) {
+  //   // Sort by day (desc)
+  //   jsonGas.sort((a, b) => {
+  //     return new Date(b.day) - new Date(a.day);
+  //   });
 
-    const lastGasConsumption = jsonGas[0];
+  //   const lastGasConsumption = jsonGas[0];
 
-    // Add energy meter to state
-    await addToState(
-      'sensor.edf_gas_consumption_kwh',
-      lastGasConsumption.consumption.energy.toFixed(3),
-      {
-        unit_of_measurement: 'kWh',
-        friendly_name: 'EDF - Gas consumption',
-        icon: 'mdi:power',
-        device_class: 'energy',
-        date: lastGasConsumption.day,
-        state_class: 'measurement',
-      }
-    );
+  //   // Add energy meter to state
+  //   await addToState(
+  //     'sensor.edf_gas_consumption_kwh',
+  //     lastGasConsumption.consumption.energy.toFixed(3),
+  //     {
+  //       unit_of_measurement: 'kWh',
+  //       friendly_name: 'EDF - Gas consumption',
+  //       icon: 'mdi:power',
+  //       device_class: 'energy',
+  //       date: lastGasConsumption.day,
+  //       state_class: 'measurement',
+  //     }
+  //   );
 
-    // Add cost to state
-    await addToState(
-      'sensor.edf_gas_consumption_cost',
-      lastGasConsumption.totalCost.toFixed(2),
-      {
-        unit_of_measurement: '€',
-        friendly_name: 'EDF - Gas consumption',
-        icon: 'mdi:currency-eur',
-        device_class: 'monetary',
-        date: lastGasConsumption.day,
-        state_class: 'total_increasing',
-      }
-    );
-  }
+  //   // Add cost to state
+  //   await addToState(
+  //     'sensor.edf_gas_consumption_cost',
+  //     lastGasConsumption.totalCost.toFixed(2),
+  //     {
+  //       unit_of_measurement: '€',
+  //       friendly_name: 'EDF - Gas consumption',
+  //       icon: 'mdi:currency-eur',
+  //       device_class: 'monetary',
+  //       date: lastGasConsumption.day,
+  //       state_class: 'total_increasing',
+  //     }
+  //   );
+  // }
 
   // Close browser
   log('Close browser');

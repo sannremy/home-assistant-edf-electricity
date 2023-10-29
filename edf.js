@@ -189,6 +189,8 @@ const getData = async () => {
 
   // Get last consumption
   const lastConsumption = consumptions[0];
+  const electricityDate = new Date(lastConsumption.period.startTime);
+  electricityDate.setHours(0, 0, 0, 0);
 
   // Add energy meter to state
   await addToState(
@@ -199,7 +201,7 @@ const getData = async () => {
       friendly_name: 'EDF - Electricity consumption',
       icon: 'mdi:power',
       device_class: 'energy',
-      date: lastConsumption.period.startTime,
+      date: electricityDate.toISOString(),
       state_class: 'measurement',
     }
   );
@@ -213,7 +215,7 @@ const getData = async () => {
       friendly_name: 'EDF - Electricity consumption',
       icon: 'mdi:currency-eur',
       device_class: 'monetary',
-      date: lastConsumption.period.startTime,
+      date: electricityDate.toISOString(),
       state_class: 'total_increasing',
     }
   );
@@ -253,6 +255,8 @@ const getData = async () => {
     });
 
     const lastGasConsumption = jsonGas[0];
+    const gasDate = new Date(lastGasConsumption.day);
+    gasDate.setHours(0, 0, 0, 0);
 
     // Add energy meter to state
     await addToState(
@@ -263,7 +267,7 @@ const getData = async () => {
         friendly_name: 'EDF - Gas consumption',
         icon: 'mdi:power',
         device_class: 'energy',
-        date: lastGasConsumption.day,
+        date: gasDate.toISOString(),
         state_class: 'measurement',
       }
     );
@@ -277,7 +281,7 @@ const getData = async () => {
         friendly_name: 'EDF - Gas consumption',
         icon: 'mdi:currency-eur',
         device_class: 'monetary',
-        date: lastGasConsumption.day,
+        date: gasDate.toISOString(),
         state_class: 'total_increasing',
       }
     );

@@ -2,7 +2,7 @@
   "name": "edf",
   "dependencies": {
     "cron": "^2.3.1",
-    "puppeteer": "^20.2.1",
+    "puppeteer-core": "^20.4.0",
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2"
   }

@@ -47,7 +47,7 @@ const getData = async () => {
   });
 
   // Load login page (redirection)
-  await page.goto('https://equilibre.edf.fr/comprendre', {
+  await page.goto('https://suiviconso.edf.fr/comprendre', {
     waitUntil: 'networkidle0',
   });
 
@@ -117,7 +117,7 @@ const getData = async () => {
   }
 
   // Click on button if session expired
-  if (page.url() === 'https://equilibre.edf.fr/session-expiree') {
+  if (page.url() === 'https://suiviconso.edf.fr/session-expiree') {
     await page.click('button');
 
     await page.waitForNavigation({
@@ -160,7 +160,7 @@ const getData = async () => {
       if (
         response.request().resourceType() === 'xhr' &&
         response.ok() &&
-        response.url().includes('https://equilibre.edf.fr/api/v2/sites/-/consumptions')
+        response.url().includes('https://suiviconso.edf.fr/api/v2/sites/-/consumptions')
       ) {
         log('Get: ' + response.url());
         const json = await response.json();
@@ -234,7 +234,7 @@ const getData = async () => {
       if (
         response.request().resourceType() === 'xhr' &&
         response.ok() &&
-        response.url().includes('https://equilibre.edf.fr/api/v1/sites/-/smart-daily-gas-consumptions')
+        response.url().includes('https://suiviconso.edf.fr/api/v1/sites/-/smart-daily-gas-consumptions')
       ) {
         log('Get: ' + response.url());
         const json = await response.json();

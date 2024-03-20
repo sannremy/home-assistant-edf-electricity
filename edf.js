@@ -128,12 +128,12 @@ const getData = async () => {
   // log('Scroll to bottom of page', page.url());
 
   // Upstream client's log messages to Node console
-  page.on('console', async (msg) => {
-    const msgArgs = msg.args();
-    for (let i = 0; i < msgArgs.length; ++i) {
-      log(`[Client]`, await msgArgs[i].jsonValue());
-    }
-  });
+  // page.on('console', async (msg) => {
+  //   const msgArgs = msg.args();
+  //   for (let i = 0; i < msgArgs.length; ++i) {
+  //     log(`[Client]`, await msgArgs[i].jsonValue());
+  //   }
+  // });
 
   // Scroll to bottom of page
   // await page.evaluate(async () => {

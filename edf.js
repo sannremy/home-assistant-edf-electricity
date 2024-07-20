@@ -52,6 +52,7 @@ const getData = async () => {
   });
 
   // Accept cookies
+  await page.waitForSelector('button[title="Accepter"]');
   if (await page.$('button[title="Accepter"]') !== null) {
     await page.click('button[title="Accepter"]');
   }

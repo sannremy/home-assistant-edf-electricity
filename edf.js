@@ -113,7 +113,7 @@ const getData = async () => {
 
     // Wait for page to load
     await page.waitForNavigation({
-      waitUntil: 'networkidle0',
+      waitUntil: 'networkidle2',
     });
   }
 

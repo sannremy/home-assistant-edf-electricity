@@ -126,7 +126,7 @@ const getData = async () => {
     });
   }
 
-  // log('Scroll to bottom of page', page.url());
+  log('Scroll to bottom of page', page.url());
 
   // Upstream client's log messages to Node console
   // page.on('console', async (msg) => {
@@ -137,21 +137,21 @@ const getData = async () => {
   // });
 
   // Scroll to bottom of page
-  // await page.evaluate(async () => {
-  //   await new Promise((resolve) => {
-  //     console.log('Start scrolling');
-  //     const timer = setInterval(() => {
-  //       window.scrollBy(0, 300);
-  //       console.log('Scrolling...', document.body.scrollHeight);
+  await page.evaluate(async () => {
+    await new Promise((resolve) => {
+      // console.log('Start scrolling');
+      const timer = setInterval(() => {
+        window.scrollBy(0, 300);
+        // console.log('Scrolling...', document.body.scrollHeight);
 
-  //       if (document.querySelector('button[aria-label="Accéder à la vue JOUR"]')) {
-  //         console.log('Stop scrolling');
-  //         clearInterval(timer);
-  //         resolve();
-  //       }
-  //     }, 1000);
-  //   });
-  // });
+        if (document.querySelector('button[aria-label="Accéder à la vue JOUR"]')) {
+          // console.log('Stop scrolling');
+          clearInterval(timer);
+          resolve();
+        }
+      }, 1000);
+    });
+  });
 
   log('----- ELECTRICITY -----');
 

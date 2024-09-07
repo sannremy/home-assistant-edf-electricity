@@ -22,7 +22,19 @@ const addToState = (name, state, attributes) => {
   });
 };
 
-const getTempoData = async (browser) => {
+const getTempoData = async () => {
+  const browser = await puppeteer.launch({
+    headless: 'new',
+    executablePath: '/usr/bin/chromium-browser',
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--headless',
+      '--disable-gpu',
+      '--disable-dev-shm-usage',
+    ],
+  });
+
   // Open new tab
   const page = await browser.newPage();
 
@@ -74,32 +86,42 @@ const getTempoData = async (browser) => {
   dateTomorrow.setDate(dateTomorrow.getDate() + 1);
   const dateTempoTomorrow = dateTomorrow.toISOString().split('T')[0];
 
-  await addToState(
-    'sensor.tempo_today',
-    tempoJson.options.calendrier.find((calendrier) => { return calendrier.dateApplication === dateTempoToday; }).statut,
-    {
-      friendly_name: 'EDF - Tempo today',
-      date: tempoJson.dateHeureTraitementActivET,
-    }
-  );
+  const calendrier = tempoJson.options[0].calendrier;
 
-  await addToState(
-    'sensor.tempo_tomorrow',
-    tempoJson.options.calendrier.find((calendrier) => { return calendrier.dateApplication === dateTempoTomorrow; }).statut,
-    {
-      friendly_name: 'EDF - Tempo tomorrow',
-      date: tempoJson.dateHeureTraitementActivET,
-    }
-  );
+  const calDateToday = calendrier.find((cal) => { return cal.dateApplication === dateTempoToday; });
+  if (calDateToday.statut) {
+    await addToState(
+      'sensor.tempo_today',
+      calDateToday.statut,
+      {
+        friendly_name: 'EDF - Tempo today',
+        date: tempoJson.dateHeureTraitementActivET,
+      }
+    );
+  }
+
+  const calDateTomorrow = calendrier.find((cal) => { return cal.dateApplication === dateTempoTomorrow; });
+  if (calDateTomorrow.statut) {
+    await addToState(
+      'sensor.tempo_tomorrow',
+      calDateTomorrow.statut,
+      {
+        friendly_name: 'EDF - Tempo tomorrow',
+        date: tempoJson.dateHeureTraitementActivET,
+      }
+    );
+  }
 
   const remainingTempoDaysJson = await remainingTempoDaysPromise;
 
-  remainingTempoDaysJson.content.forEach(async (color) => {
-    await addToState(
-      `sensor.remaining_${color.typeJourEff.toLowerCase().replace('tempo_', '')}_days`,
-      color.nombreJours - color.nombreJoursTires,
-      color
-    );
+  remainingTempoDaysJson.forEach(async (color) => {
+    if (color.typeJourEff) {
+      await addToState(
+        `sensor.remaining_${color.typeJourEff.toLowerCase().replace('tempo_', '')}_days`,
+        color.nombreJours - color.nombreJoursTires,
+        color
+      );
+    }
   });
 };
 
@@ -115,13 +137,6 @@ const getData = async () => {
       '--disable-dev-shm-usage',
     ],
   });
-
-  // Get tempo data
-  try {
-    await getTempoData(browser);
-  } catch (e) {
-    log('Error getting tempo data', e);
-  }
 
   // Open new tab
   const page = await browser.newPage();
@@ -241,6 +256,11 @@ const getData = async () => {
     });
   });
 
+  // Clean all cache in session storage
+  await page.evaluate(() => {
+    sessionStorage.clear();
+  });
+
   log('----- ELECTRICITY -----');
 
   const json = await new Promise(async resolve => {
@@ -309,9 +329,6 @@ const getData = async () => {
     }
   );
 
-  // ----------------------------- GAS -----------------------------
-  // ----------------------------- GAS -----------------------------
-  // ----------------------------- GAS -----------------------------
   // ----------------------------- GAS -----------------------------
 
   log('----- GAS -----');
@@ -385,6 +402,7 @@ const job = new CronJob(
   `0 ${process.env.EDF_CRON}`,
   function () { // onTick
     getData();
+    getTempoData();
   },
   null,
   true, // Start the job right now

@@ -68,11 +68,11 @@ const getTempoData = async (browser) => {
   const tempoJson = await tempoPromise;
 
   const date = new Date();
-  const dateTempoToday = `${date.toISOString().split('T')[0]}}`;
+  const dateTempoToday = date.toISOString().split('T')[0];
 
   const dateTomorrow = new Date();
   dateTomorrow.setDate(dateTomorrow.getDate() + 1);
-  const dateTempoTomorrow = `${dateTomorrow.toISOString().split('T')[0]}`;
+  const dateTempoTomorrow = dateTomorrow.toISOString().split('T')[0];
 
   await addToState(
     'sensor.tempo_today',

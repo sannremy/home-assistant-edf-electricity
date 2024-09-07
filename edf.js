@@ -22,6 +22,87 @@ const addToState = (name, state, attributes) => {
   });
 };
 
+const getTempoData = async (browser) => {
+  // Open new tab
+  const page = await browser.newPage();
+
+  page.setDefaultNavigationTimeout(5 * 60 * 1000); // 5 minutes
+
+  // Set viewport
+  await page.setViewport({
+    width: 1168,
+    height: 687,
+  });
+
+  const getContentFromAPI = async (url) => {
+    return await new Promise(async resolve => {
+      log('Set event on response for API call', page.url());
+      page.on('response', async response => {
+        if (
+          response.request().resourceType() === 'xhr' &&
+          response.ok() &&
+          response.url().includes(url)
+        ) {
+          log('Get: ' + response.url());
+          const json = await response.json();
+
+          if (json.content) {
+            return resolve(json.content);
+          }
+        }
+      });
+    });
+  };
+
+  // Get tempo JSON data
+  const tempoPromise = getContentFromAPI('https://api-commerce.edf.fr/commerce/activet/v1/calendrier-jours-effacement');
+
+  // Get remaining tempo days
+  const remainingTempoDaysPromise = getContentFromAPI('https://api-commerce.edf.fr/commerce/activet/v1/saisons/search');
+
+  // Tempo page
+  await page.goto('https://particulier.edf.fr/fr/accueil/gestion-contrat/options/tempo.html', {
+    waitUntil: 'networkidle0',
+  });
+
+  const tempoJson = await tempoPromise;
+
+  const date = new Date();
+  const dateTempoToday = `${date.toISOString().split('T')[0]}}`;
+
+  const dateTomorrow = new Date();
+  dateTomorrow.setDate(dateTomorrow.getDate() + 1);
+  const dateTempoTomorrow = `${dateTomorrow.toISOString().split('T')[0]}`;
+
+  await addToState(
+    'sensor.tempo_today',
+    tempoJson.options.calendrier.find((calendrier) => { return calendrier.dateApplication === dateTempoToday; }).statut,
+    {
+      friendly_name: 'EDF - Tempo today',
+      date: tempoJson.dateHeureTraitementActivET,
+    }
+  );
+
+  await addToState(
+    'sensor.tempo_tomorrow',
+    tempoJson.options.calendrier.find((calendrier) => { return calendrier.dateApplication === dateTempoTomorrow; }).statut,
+    {
+      friendly_name: 'EDF - Tempo tomorrow',
+      date: tempoJson.dateHeureTraitementActivET,
+    }
+  );
+
+  const remainingTempoDaysJson = await remainingTempoDaysPromise;
+
+  remainingTempoDaysJson.content.forEach(async (color) => {
+    await addToState(
+      `sensor.remaining_${color.typeJourEff.toLowerCase().replace('tempo_', '')}_days`,
+      color.nombreJours - color.nombreJoursTires,
+      color
+    );
+  });
+};
+
 const getData = async () => {
   const browser = await puppeteer.launch({
     headless: 'new',
@@ -34,6 +115,13 @@ const getData = async () => {
       '--disable-dev-shm-usage',
     ],
   });
+
+  // Get tempo data
+  try {
+    await getTempoData(browser);
+  } catch (e) {
+    log('Error getting tempo data', e);
+  }
 
   // Open new tab
   const page = await browser.newPage();

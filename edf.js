@@ -256,7 +256,7 @@ const getData = async () => {
     });
   });
 
-  // Clean all cache in session storage
+  // Clean all cache in session storage to force API requests
   await page.evaluate(() => {
     sessionStorage.clear();
   });

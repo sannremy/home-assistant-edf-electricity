@@ -168,6 +168,7 @@ const getData = async () => {
         }
         // console.log(foundAllPatterns, key);
         if (foundAllPatterns) {
+          console.log('Found key', key);
           return JSON.parse(sessionStorage.getItem(key)).value?.data || null;
         }
       }
@@ -331,7 +332,7 @@ const getData = async () => {
     'DAYS'
   ]);
 
-  if (json.step === 'P1D') {
+  if (json && json.step === 'P1D') {
     // Filter by REAL and COMPLETE
     const consumptions = json.consumptions.filter((consumption) => {
       return consumption.nature === 'REAL' && consumption.status === 'COMPLETE';

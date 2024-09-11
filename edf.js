@@ -22,6 +22,10 @@ const addToState = (name, state, attributes) => {
   });
 };
 
+const sleep = (ms) => {
+  return new Promise(resolve => setTimeout(resolve, ms));
+};
+
 const getTempoData = async () => {
   const browser = await puppeteer.launch({
     headless: 'new',
@@ -149,6 +153,54 @@ const getData = async () => {
     height: 687,
   });
 
+  const getDataFromSessionStorage = async (keyPatterns) => {
+    return await page.evaluate((keyPatterns) => {
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const key = sessionStorage.key(i);
+        let foundAllPatterns = false;
+        for (const keyPattern of keyPatterns) {
+          if (key.includes(keyPattern)) {
+            foundAllPatterns = true;
+          } else {
+            foundAllPatterns = false;
+            break;
+          }
+        }
+        // console.log(foundAllPatterns, key);
+        if (foundAllPatterns) {
+          return JSON.parse(sessionStorage.getItem(key)).value?.data || null;
+        }
+      }
+
+      return null;
+    }, keyPatterns);
+  };
+
+  // const getDataFromAPI = async (url) => {
+  //   return await new Promise(async resolve => {
+  //     page.on('response', async response => {
+  //       if (
+  //         response.request().resourceType() === 'xhr' &&
+  //         response.ok() &&
+  //         response.url().includes(url)
+  //       ) {
+  //         log('Get: ' + response.url());
+  //         const json = await response.json();
+  //         return resolve(json);
+  //       }
+  //     });
+  //   });
+  // };
+
+  // Clear session storage
+  // log('Clear session storage');
+  // await page.evaluate(() => {
+  //   sessionStorage.clear();
+  // });
+
+  // const jsonPromise = getDataFromAPI('https://suiviconso.edf.fr/api/v2/sites/-/consumptions');
+  // const jsonGasPromise = getDataFromAPI('https://suiviconso.edf.fr/api/v1/sites/-/smart-daily-gas-consumptions');
+
   // Load login page (redirection)
   await page.goto('https://suiviconso.edf.fr/comprendre', {
     waitUntil: 'networkidle0',
@@ -184,8 +236,8 @@ const getData = async () => {
 
     log('Waiting for code to be sent by email...');
 
-    // Wait 30 seconds for code to be sent by email
-    await new Promise(r => setTimeout(r, 30000));
+    // Wait 10 seconds for code to be sent by email
+    await sleep(10000);
 
     log('Getting code from Home Assistant...');
 
@@ -215,9 +267,13 @@ const getData = async () => {
     log('Code sent to EDF');
 
     // Wait for page to load
-    await page.waitForNavigation({
-      waitUntil: 'networkidle2',
-    });
+    try {
+      await page.waitForNavigation({
+        waitUntil: 'networkidle2',
+      });
+    } catch (e) {
+      log('Error while waiting for navigation', e);
+    }
   }
 
   // Click on button if session expired
@@ -232,12 +288,12 @@ const getData = async () => {
   log('Scroll to bottom of page', page.url());
 
   // Upstream client's log messages to Node console
-  // page.on('console', async (msg) => {
-  //   const msgArgs = msg.args();
-  //   for (let i = 0; i < msgArgs.length; ++i) {
-  //     log(`[Client]`, await msgArgs[i].jsonValue());
-  //   }
-  // });
+  page.on('console', async (msg) => {
+    const msgArgs = msg.args();
+    for (let i = 0; i < msgArgs.length; ++i) {
+      log(`[Client]`, await msgArgs[i].jsonValue());
+    }
+  });
 
   // Scroll to bottom of page
   await page.evaluate(async () => {
@@ -256,105 +312,96 @@ const getData = async () => {
     });
   });
 
-  // Clean all cache in session storage to force API requests
-  await page.evaluate(() => {
-    sessionStorage.clear();
-  });
-
   log('----- ELECTRICITY -----');
 
-  const json = await new Promise(async resolve => {
-    log('Set event on response for API call', page.url());
-    page.on('response', async response => {
-      if (
-        response.request().resourceType() === 'xhr' &&
-        response.ok() &&
-        response.url().includes('https://suiviconso.edf.fr/api/v2/sites/-/consumptions')
-      ) {
-        log('Get: ' + response.url());
-        const json = await response.json();
+  log('Click on JOUR button', page.url());
 
-        if (json.step === 'P1D') {
-          return resolve(json);
-        }
-      }
+  // Click on button
+  await page.click('button[aria-label="Accéder à la vue JOUR"]');
+  await sleep(5000);
+
+  await page.click('button[aria-label="Accéder à la vue MOIS"]');
+  await sleep(5000);
+
+  await page.click('button[aria-label="Accéder à la vue ANNÉE"]');
+  await sleep(5000);
+
+  const json = await getDataFromSessionStorage([
+    'datacache:elec-consumptions',
+    'DAYS'
+  ]);
+
+  if (json.step === 'P1D') {
+    // Filter by REAL and COMPLETE
+    const consumptions = json.consumptions.filter((consumption) => {
+      return consumption.nature === 'REAL' && consumption.status === 'COMPLETE';
     });
 
-    log('Click on JOUR button', page.url());
+    // Sort by startTime (desc)
+    consumptions.sort((a, b) => {
+      return new Date(b.period.startTime) - new Date(a.period.startTime);
+    });
 
-    // Click on button
-    await page.click('button[aria-label="Accéder à la vue JOUR"]');
-  });
+    // Get last consumption
+    const lastConsumption = consumptions[0];
+    const electricityDate = new Date(lastConsumption.period.startTime);
+    electricityDate.setHours(0, 0, 0, 0);
 
-  // Filter by REAL and COMPLETE
-  const consumptions = json.consumptions.filter((consumption) => {
-    return consumption.nature === 'REAL' && consumption.status === 'COMPLETE';
-  });
+    // Add energy meter to state
+    await addToState(
+      'sensor.edf_electricity_consumption_kwh',
+      lastConsumption.energyMeter.total.toFixed(3),
+      {
+        unit_of_measurement: 'kWh',
+        friendly_name: 'EDF - Electricity consumption',
+        icon: 'mdi:power',
+        device_class: 'energy',
+        date: electricityDate.toISOString(),
+        state_class: 'measurement',
+      }
+    );
 
-  // Sort by startTime (desc)
-  consumptions.sort((a, b) => {
-    return new Date(b.period.startTime) - new Date(a.period.startTime);
-  });
-
-  // Get last consumption
-  const lastConsumption = consumptions[0];
-  const electricityDate = new Date(lastConsumption.period.startTime);
-  electricityDate.setHours(0, 0, 0, 0);
-
-  // Add energy meter to state
-  await addToState(
-    'sensor.edf_electricity_consumption_kwh',
-    lastConsumption.energyMeter.total.toFixed(3),
-    {
-      unit_of_measurement: 'kWh',
-      friendly_name: 'EDF - Electricity consumption',
-      icon: 'mdi:power',
-      device_class: 'energy',
-      date: electricityDate.toISOString(),
-      state_class: 'measurement',
-    }
-  );
-
-  // Add cost to state
-  await addToState(
-    'sensor.edf_electricity_consumption_cost',
-    lastConsumption.cost.total.toFixed(2),
-    {
-      unit_of_measurement: '€',
-      friendly_name: 'EDF - Electricity consumption',
-      icon: 'mdi:currency-eur',
-      device_class: 'monetary',
-      date: electricityDate.toISOString(),
-      state_class: 'total_increasing',
-    }
-  );
+    // Add cost to state
+    await addToState(
+      'sensor.edf_electricity_consumption_cost',
+      lastConsumption.cost.total.toFixed(2),
+      {
+        unit_of_measurement: '€',
+        friendly_name: 'EDF - Electricity consumption',
+        icon: 'mdi:currency-eur',
+        device_class: 'monetary',
+        date: electricityDate.toISOString(),
+        state_class: 'total_increasing',
+      }
+    );
+  } else {
+    log('Electricity data not available for today');
+  }
 
   // ----------------------------- GAS -----------------------------
 
   log('----- GAS -----');
 
-  // Check for gas
-  const jsonGas = await new Promise(async resolve => {
-    log('Set event on response for API call', page.url());
-    page.on('response', async response => {
-      if (
-        response.request().resourceType() === 'xhr' &&
-        response.ok() &&
-        response.url().includes('https://suiviconso.edf.fr/api/v1/sites/-/smart-daily-gas-consumptions')
-      ) {
-        log('Get: ' + response.url());
-        const json = await response.json();
-        return resolve(json);
-      }
-    });
+  log('Click on GAS button', page.url());
 
-    log('Click on GAS button', page.url());
+  // Click on button
+  await page.click('label[for="switch-fluid-radio-gaz"]');
+  await sleep(5000);
 
-    // Click on button
-    await page.click('label[for="switch-fluid-radio-gaz"]');
-  });
+  await page.click('button[aria-label="Accéder à la vue ANNÉE"]');
+  await sleep(5000);
 
-  if (jsonGas.length > 0) {
+  await page.click('button[aria-label="Accéder à la vue MOIS"]');
+  await sleep(5000);
+
+  await page.click('button[aria-label="Accéder à la vue JOUR"]');
+  await sleep(5000);
+
+  const jsonGas = await getDataFromSessionStorage([
+    'datacache:smart-daily-gas-consumptions'
+  ]);
+
+  if (jsonGas && jsonGas.length > 0) {
     // Sort by day (desc)
     jsonGas.sort((a, b) => {
       return new Date(b.day) - new Date(a.day);
@@ -391,6 +438,8 @@ const getData = async () => {
         state_class: 'total_increasing',
       }
     );
+  } else {
+    log('Gas data not available for today');
   }
 
   // Close browser
@@ -402,6 +451,17 @@ const job = new CronJob(
   `0 ${process.env.EDF_CRON}`,
   function () { // onTick
     getData();
+  },
+  null,
+  true, // Start the job right now
+  'Europe/Paris', // Timezone
+  null, // Context
+  true // Run the job
+);
+
+const tempoJob = new CronJob(
+  `0 ${process.env.EDF_TEMPO_CRON}`,
+  function () { // onTick
     getTempoData();
   },
   null,

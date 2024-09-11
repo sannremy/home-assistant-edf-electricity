@@ -48,7 +48,8 @@ Once the verification code is sent, Home Assistant has to extract the code and p
 |Option|Required|Description|
 |---------|--------|-----------|
 |`username`|Yes|The email address to login on EDF.|
-|`cron`|No|Default is every 3 hours: `0 */3 * * *`. If set, it will override the time when the job runs.|
+|`cron`|No|This will fetch the daily consumption. Default is every 3 hours: `0 */3 * * *`. If set, it will override the time when the job runs.|
+|`tempocron`|No|This will fetch the Tempo info. Default is every 3 hours: `0 */3 * * *`. If set, it will override the time when the job runs.|
 
 ## Contributing
 

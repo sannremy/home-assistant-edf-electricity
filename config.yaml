@@ -1,6 +1,6 @@
 name: "EDF"
 description: "Get daily power consumption"
-version: "1.0.0"
+version: "1.0.1"
 slug: "edf-electricity"
 init: false
 homeassistant_api: true
@@ -13,6 +13,8 @@ arch:
 options:
   username: null
   cron: "0 */3 * * *"
+  tempocron: "0 */3 * * *"
 schema:
   username: str
   cron: str
+  tempocron: str

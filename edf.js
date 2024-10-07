@@ -26,109 +26,6 @@ const sleep = (ms) => {
   return new Promise(resolve => setTimeout(resolve, ms));
 };
 
-const getTempoData = async () => {
-  const browser = await puppeteer.launch({
-    headless: 'new',
-    executablePath: '/usr/bin/chromium-browser',
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--headless',
-      '--disable-gpu',
-      '--disable-dev-shm-usage',
-    ],
-  });
-
-  // Open new tab
-  const page = await browser.newPage();
-
-  page.setDefaultNavigationTimeout(5 * 60 * 1000); // 5 minutes
-
-  // Set viewport
-  await page.setViewport({
-    width: 1168,
-    height: 687,
-  });
-
-  const getContentFromAPI = async (url) => {
-    return await new Promise(async resolve => {
-      log('Set event on response for API call', page.url());
-      page.on('response', async response => {
-        if (
-          response.request().resourceType() === 'xhr' &&
-          response.ok() &&
-          response.url().includes(url)
-        ) {
-          log('Get: ' + response.url());
-          const json = await response.json();
-
-          if (json.content) {
-            return resolve(json.content);
-          }
-        }
-      });
-    });
-  };
-
-  // Get tempo JSON data
-  const tempoPromise = getContentFromAPI('https://api-commerce.edf.fr/commerce/activet/v1/calendrier-jours-effacement');
-
-  // Get remaining tempo days
-  const remainingTempoDaysPromise = getContentFromAPI('https://api-commerce.edf.fr/commerce/activet/v1/saisons/search');
-
-  // Tempo page
-  await page.goto('https://particulier.edf.fr/fr/accueil/gestion-contrat/options/tempo.html', {
-    waitUntil: 'networkidle0',
-  });
-
-  const tempoJson = await tempoPromise;
-
-  const date = new Date();
-  const dateTempoToday = date.toISOString().split('T')[0];
-
-  const dateTomorrow = new Date();
-  dateTomorrow.setDate(dateTomorrow.getDate() + 1);
-  const dateTempoTomorrow = dateTomorrow.toISOString().split('T')[0];
-
-  const calendrier = tempoJson.options[0].calendrier;
-
-  const calDateToday = calendrier.find((cal) => { return cal.dateApplication === dateTempoToday; });
-  if (calDateToday.statut) {
-    await addToState(
-      'sensor.tempo_today',
-      calDateToday.statut,
-      {
-        friendly_name: 'EDF - Tempo today',
-        date: tempoJson.dateHeureTraitementActivET,
-      }
-    );
-  }
-
-  const calDateTomorrow = calendrier.find((cal) => { return cal.dateApplication === dateTempoTomorrow; });
-  if (calDateTomorrow.statut) {
-    await addToState(
-      'sensor.tempo_tomorrow',
-      calDateTomorrow.statut,
-      {
-        friendly_name: 'EDF - Tempo tomorrow',
-        date: tempoJson.dateHeureTraitementActivET,
-      }
-    );
-  }
-
-  const remainingTempoDaysJson = await remainingTempoDaysPromise;
-
-  remainingTempoDaysJson.forEach(async (color) => {
-    if (color.typeJourEff) {
-      await addToState(
-        `sensor.remaining_${color.typeJourEff.toLowerCase().replace('tempo_', '')}_days`,
-        color.nombreJours - color.nombreJoursTires,
-        color
-      );
-    }
-  });
-};
-
 const getData = async () => {
   const browser = await puppeteer.launch({
     headless: 'new',
@@ -263,17 +160,25 @@ const getData = async () => {
     log('Code typed');
 
     // Click on "Suivant"
-    await page.click('#hotpcust4-next-button');
+    // await page.click('#hotpcust4-next-button');
+
+    // Enter
+    await page.keyboard.press('Enter');
 
     log('Code sent to EDF');
 
     // Wait for page to load
     try {
       await page.waitForNavigation({
-        waitUntil: 'networkidle2',
+        waitUntil: 'networkidle0',
       });
     } catch (e) {
       log('Error while waiting for navigation', e);
+
+      // Close browser and return if error (try again later)
+      log('Close browser');
+      await browser.close();
+      return;
     }
   }
 
@@ -452,18 +357,6 @@ const job = new CronJob(
   `0 ${process.env.EDF_CRON}`,
   function () { // onTick
     getData();
-  },
-  null,
-  true, // Start the job right now
-  'Europe/Paris', // Timezone
-  null, // Context
-  true // Run the job
-);
-
-const tempoJob = new CronJob(
-  `0 ${process.env.EDF_TEMPO_CRON}`,
-  function () { // onTick
-    getTempoData();
   },
   null,
   true, // Start the job right now

@@ -13,8 +13,6 @@ arch:
 options:
   username: null
   cron: "0 */3 * * *"
-  tempocron: "0 */3 * * *"
 schema:
   username: str
   cron: str
-  tempocron: str

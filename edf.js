@@ -1,3 +1,6 @@
+const isDev = false;
+const email = process.env.EDF_USERNAME;
+
 const CronJob = require('cron').CronJob;
 const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
@@ -28,9 +31,11 @@ const sleep = (ms) => {
 
 const getData = async () => {
   const browser = await puppeteer.launch({
-    headless: 'new',
-    executablePath: '/usr/bin/chromium-browser',
-    args: [
+    headless: isDev ? false : 'new',
+    executablePath: isDev ?
+      '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' :
+      '/usr/bin/chromium-browser',
+    args: isDev ? [] : [
       '--no-sandbox',
       '--disable-setuid-sandbox',
       '--headless',
@@ -99,8 +104,7 @@ const getData = async () => {
   // const jsonPromise = getDataFromAPI('https://suiviconso.edf.fr/api/v2/sites/-/consumptions');
   // const jsonGasPromise = getDataFromAPI('https://suiviconso.edf.fr/api/v1/sites/-/smart-daily-gas-consumptions');
 
-  // Load login page (redirection)
-  await page.goto('https://suiviconso.edf.fr/comprendre', {
+  await page.goto('https://particulier.edf.fr', {
     waitUntil: 'networkidle0',
   });
 
@@ -110,6 +114,11 @@ const getData = async () => {
     await page.click('button[title="Accepter"]');
   }
 
+  // Load login page (redirection)
+  await page.goto('https://suiviconso.edf.fr/comprendre', {
+    waitUntil: 'networkidle0',
+  });
+
   // Login steps
 
   // Click on email
@@ -117,7 +126,7 @@ const getData = async () => {
   await page.click('#email');
 
   // Type email
-  await page.keyboard.type(process.env.EDF_USERNAME);
+  await page.keyboard.type(email);
   await page.keyboard.press('Enter');
 
   // Wait for selector to appear
@@ -353,14 +362,18 @@ const getData = async () => {
   await browser.close();
 };
 
-const job = new CronJob(
-  `0 ${process.env.EDF_CRON}`,
-  function () { // onTick
-    getData();
-  },
-  null,
-  true, // Start the job right now
-  'Europe/Paris', // Timezone
-  null, // Context
-  true // Run the job
-);
+if (isDev) {
+  getData();
+} else {
+  const job = new CronJob(
+    `0 ${process.env.EDF_CRON}`,
+    function () { // onTick
+      getData();
+    },
+    null,
+    true, // Start the job right now
+    'Europe/Paris', // Timezone
+    null, // Context
+    true // Run the job
+  );
+}

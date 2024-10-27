@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.3
+
+- Added `isDev` mode.
+- Fixed blank page.
+
 ## 1.0.2
 
 - Move Tempo info to another add-on.

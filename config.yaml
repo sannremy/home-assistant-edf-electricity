@@ -1,6 +1,6 @@
 name: "EDF"
 description: "Get daily power consumption"
-version: "1.0.1"
+version: "1.0.3"
 slug: "edf-electricity"
 init: false
 homeassistant_api: true

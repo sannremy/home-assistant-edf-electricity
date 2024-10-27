@@ -1,4 +1,4 @@
-const isDev = false;
+const isDev = process.env.DEV === 'true';
 const email = process.env.EDF_USERNAME;
 
 const CronJob = require('cron').CronJob;
@@ -12,17 +12,21 @@ const log = (...args) => {
 }
 
 const addToState = (name, state, attributes) => {
-  return fetch(`http://supervisor/core/api/states/${name}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + process.env.SUPERVISOR_TOKEN,
-    },
-    body: JSON.stringify({
-      state,
-      attributes,
-    }),
-  });
+  if (isDev) {
+    return log('[Dev] Add to state', name, state, attributes);
+  } else {
+    return fetch(`http://supervisor/core/api/states/${name}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + process.env.SUPERVISOR_TOKEN,
+      },
+      body: JSON.stringify({
+        state,
+        attributes,
+      }),
+    });
+  }
 };
 
 const sleep = (ms) => {
@@ -79,31 +83,6 @@ const getData = async () => {
     }, keyPatterns);
   };
 
-  // const getDataFromAPI = async (url) => {
-  //   return await new Promise(async resolve => {
-  //     page.on('response', async response => {
-  //       if (
-  //         response.request().resourceType() === 'xhr' &&
-  //         response.ok() &&
-  //         response.url().includes(url)
-  //       ) {
-  //         log('Get: ' + response.url());
-  //         const json = await response.json();
-  //         return resolve(json);
-  //       }
-  //     });
-  //   });
-  // };
-
-  // Clear session storage
-  // log('Clear session storage');
-  // await page.evaluate(() => {
-  //   sessionStorage.clear();
-  // });
-
-  // const jsonPromise = getDataFromAPI('https://suiviconso.edf.fr/api/v2/sites/-/consumptions');
-  // const jsonGasPromise = getDataFromAPI('https://suiviconso.edf.fr/api/v1/sites/-/smart-daily-gas-consumptions');
-
   await page.goto('https://particulier.edf.fr', {
     waitUntil: 'networkidle0',
   });
@@ -143,52 +122,56 @@ const getData = async () => {
 
     log('Waiting for code to be sent by email...');
 
-    // Wait 10 seconds for code to be sent by email
-    await sleep(10000);
+    if (isDev) {
+      // Wait 20 seconds for code to be sent by email (manually set code)
+      log('Go get the code from email. 📧 (30 sec.)');
+      await sleep(10000);
 
-    log('Getting code from Home Assistant...');
+      log('Go get the code from email. 📧 (20 sec.)');
+      await sleep(10000);
 
-    // Get the code from Home Assistant
-    const sensorReq = await fetch('http://supervisor/core/api/states/sensor.edf_code', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + process.env.SUPERVISOR_TOKEN,
-      },
-    });
+      log('Go get the code from email. 📧 (10 sec.)');
+      await sleep(5000);
 
-    const sensorJson = await sensorReq.json();
-    const edfCode = sensorJson.state;
+      log('Go get the code from email. 📧 (5 sec.)');
+      await sleep(5000);
+    } else {
+      // Wait 20 seconds for code to be sent by email
+      await sleep(20000);
+      log('Getting code from Home Assistant...');
 
-    log('Code: ' + edfCode);
+      // Get the code from Home Assistant
+      const sensorReq = await fetch('http://supervisor/core/api/states/sensor.edf_code', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + process.env.SUPERVISOR_TOKEN,
+        },
+      });
 
-    // Type code
-    await page.click('#code-seizure__field');
-    await page.keyboard.type(edfCode);
+      const sensorJson = await sensorReq.json();
+      const edfCode = sensorJson.state;
 
-    log('Code typed');
+      log('Code: ' + edfCode);
+
+      // Type code
+      await page.click('#code-seizure__field');
+      await page.keyboard.type(edfCode);
+
+      log('Code typed');
+    }
 
     // Click on "Suivant"
     // await page.click('#hotpcust4-next-button');
 
     // Enter
+    log('Press Enter');
     await page.keyboard.press('Enter');
 
     log('Code sent to EDF');
 
     // Wait for page to load
-    try {
-      await page.waitForNavigation({
-        waitUntil: 'networkidle0',
-      });
-    } catch (e) {
-      log('Error while waiting for navigation', e);
-
-      // Close browser and return if error (try again later)
-      log('Close browser');
-      await browser.close();
-      return;
-    }
+    await sleep(20000);
   }
 
   // Click on button if session expired

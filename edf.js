@@ -2,10 +2,6 @@ const isDev = process.env.DEV === 'true';
 const email = process.env.EDF_USERNAME;
 
 const CronJob = require('cron').CronJob;
-const puppeteer = require('puppeteer-extra');
-const StealthPlugin = require('puppeteer-extra-plugin-stealth');
-
-puppeteer.use(StealthPlugin());
 
 const log = (...args) => {
   return console.log(`[${(new Date()).toISOString()}]`, ...args);
@@ -34,6 +30,11 @@ const sleep = (ms) => {
 };
 
 const getData = async () => {
+  const puppeteer = require('puppeteer-extra');
+  const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+
+  puppeteer.use(StealthPlugin());
+
   const browser = await puppeteer.launch({
     headless: isDev ? false : 'new',
     executablePath: isDev ?

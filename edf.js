@@ -117,7 +117,15 @@ const getData = async () => {
   if (await page.$(emailRadioSelector) !== null) {
     // Select radio button
     await page.click(emailRadioSelector); // "Email"
-    await page.click('#hotpcust3-next-button'); // "Suivant"
+    await sleep(1000);
+
+    if (await page.$('#hotpcust3-next-button') !== null) {
+      await page.click('#hotpcust3-next-button'); // "Suivant"
+    } else {
+      await page.evaluate(() => {
+        return sendCode();
+      });
+    }
 
     log('Waiting for code to be sent by email...');
 

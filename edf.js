@@ -184,10 +184,16 @@ const getData = async () => {
   // Click on button if session expired
   if (page.url() === 'https://suiviconso.edf.fr/session-expiree') {
     await page.click('button');
+  }
 
-    await page.waitForNavigation({
-      waitUntil: 'networkidle0',
-    });
+  await page.waitForNavigation({
+    waitUntil: 'networkidle0',
+  });
+
+  if (page.url().includes('sso/XUI/#login')) {
+    log('Login failed');
+    await browser.close();
+    return;
   }
 
   log('Scroll to bottom of page', page.url());

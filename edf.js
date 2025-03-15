@@ -50,6 +50,11 @@ const getData = async () => {
   // Open new tab
   const page = await browser.newPage();
 
+  page.on("framenavigated", frame => {
+    const url = frame.url(); // the new url
+    log('Frame navigated', url);
+  });
+
   page.setDefaultNavigationTimeout(5 * 60 * 1000); // 5 minutes
 
   // Set viewport
@@ -162,14 +167,14 @@ const getData = async () => {
       log('Code: ' + edfCode);
 
       // Type code
-      await page.click('#code-seizure__field');
+      await page.click('#label-code-seizure__field');
       await page.keyboard.type(edfCode);
 
       log('Code typed');
     }
 
     // Click on "Suivant"
-    // await page.click('#hotpcust4-next-button');
+    await page.click('#hotpcust4-next-button');
 
     // Enter
     log('Press Enter');
@@ -179,6 +184,8 @@ const getData = async () => {
 
     // Wait for page to load
     await sleep(20000);
+
+    await page.goto('https://suiviconso.edf.fr/comprendre');
   }
 
   // Click on button if session expired

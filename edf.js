@@ -148,8 +148,8 @@ const getData = async () => {
       log('Go get the code from email. 📧 (5 sec.)');
       await sleep(5000);
     } else {
-      // Wait 20 seconds for code to be sent by email
-      await sleep(20000);
+      // Wait 60 seconds for code to be sent by email
+      await sleep(60000);
       log('Getting code from Home Assistant...');
 
       // Get the code from Home Assistant

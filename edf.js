@@ -57,6 +57,16 @@ const getData = async () => {
 
   page.setDefaultNavigationTimeout(5 * 60 * 1000); // 5 minutes
 
+  await page.setRequestInterception(true);
+
+  page.on('request', req => {
+    if (req.url().startsWith('https://track.adform.net')) {
+      req.abort();
+    } else {
+      req.continue();
+    }
+  });
+
   // Set viewport
   await page.setViewport({
     width: 1168,

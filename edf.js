@@ -262,16 +262,17 @@ const getData = async () => {
   if (json && json.step === 'P1D') {
     // Filter by REAL and COMPLETE
     const consumptions = json.consumptions.filter((consumption) => {
-      return consumption.nature === 'REAL' && consumption.status === 'COMPLETE';
+      // return consumption.nature === 'REAL' && consumption.status === 'COMPLETE';
+      return true; // We keep all data
     });
 
-    // Sort by startTime (desc)
+    // Sort by startTime (asc)
     consumptions.sort((a, b) => {
-      return new Date(b.period.startTime) - new Date(a.period.startTime);
+      return new Date(a.period.startTime) - new Date(b.period.startTime);
     });
 
     // Get last consumption
-    const lastConsumption = consumptions[0];
+    const lastConsumption = consumptions[consumptions.length - 1];
     const electricityDate = new Date(lastConsumption.period.startTime);
     electricityDate.setHours(0, 0, 0, 0);
 
@@ -286,6 +287,31 @@ const getData = async () => {
         device_class: 'energy',
         date: electricityDate.toISOString(),
         state_class: 'measurement',
+        // Chart.js labels and datasets attributes
+        chart_datasets: [
+          // kWh
+          {
+            type: 'line',
+            label: 'Electricity consumption',
+            data: consumptions.map(stat => {
+              return {
+                x: stat.period.startTime.substring(0, 10), // YYYY-MM-DD
+                y: stat.energyMeter.total.toFixed(3), // kWh
+              };
+            }),
+          },
+          // Euros
+          {
+            type: 'bar',
+            label: 'Electricity cost',
+            data: consumptions.map(stat => {
+              return {
+                x: stat.period.startTime.substring(0, 10), // YYYY-MM-DD
+                y: stat.cost.total.toFixed(2), // €
+              };
+            }),
+          },
+        ],
       }
     );
 
@@ -330,12 +356,12 @@ const getData = async () => {
   ]);
 
   if (jsonGas && jsonGas.length > 0) {
-    // Sort by day (desc)
+    // Sort by day (asc)
     jsonGas.sort((a, b) => {
-      return new Date(b.day) - new Date(a.day);
+      return new Date(a.day) - new Date(b.day);
     });
 
-    const lastGasConsumption = jsonGas[0];
+    const lastGasConsumption = jsonGas[jsonGas.length - 1];
     const gasDate = new Date(lastGasConsumption.day);
     gasDate.setHours(0, 0, 0, 0);
 
@@ -350,6 +376,31 @@ const getData = async () => {
         device_class: 'energy',
         date: gasDate.toISOString(),
         state_class: 'measurement',
+        // Chart.js labels and datasets attributes
+        chart_datasets: [
+          // kWh
+          {
+            type: 'line',
+            label: 'Gas consumption',
+            data: jsonGas.map(stat => {
+              return {
+                x: stat.day, // YYYY-MM-DD
+                y: stat.consumption.energy.toFixed(3), // kWh
+              };
+            }),
+          },
+          // Euros
+          {
+            type: 'bar',
+            label: 'Gas cost',
+            data: jsonGas.map(stat => {
+              return {
+                x: stat.day, // YYYY-MM-DD
+                y: stat.totalCost.toFixed(2), // €
+              };
+            }),
+          },
+        ],
       }
     );
 

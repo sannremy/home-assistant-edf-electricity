@@ -246,13 +246,19 @@ const getData = async () => {
 
   // Click on button
   await page.click('button[aria-label="Accéder à la vue JOUR"]');
-  await sleep(5000);
+  await sleep(2000);
 
   await page.click('button[aria-label="Accéder à la vue MOIS"]');
-  await sleep(5000);
+  await sleep(2000);
 
   await page.click('button[aria-label="Accéder à la vue ANNÉE"]');
-  await sleep(5000);
+  await sleep(2000);
+
+  await page.click('button[aria-label="Accéder à la vue HEURE"]');
+  await sleep(2000);
+
+  await page.click('button[aria-label="Accéder à la vue JOUR"]');
+  await sleep(2000);
 
   const json = await getDataFromSessionStorage([
     'datacache:elec-consumptions',

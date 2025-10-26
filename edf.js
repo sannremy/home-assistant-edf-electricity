@@ -69,8 +69,8 @@ const getData = async () => {
 
   // Set viewport
   await page.setViewport({
-    width: 1168,
-    height: 687,
+    width: 1904,
+    height: 1012,
   });
 
   const getDataFromSessionStorage = async (keyPatterns) => {
@@ -158,8 +158,18 @@ const getData = async () => {
       log('Go get the code from email. 📧 (5 sec.)');
       await sleep(5000);
     } else {
-      // Wait 60 seconds for code to be sent by email
-      await sleep(60000);
+      const emptyPage = await browser.newPage();
+      // Wait 30 seconds for code to be sent by email
+      await sleep(30000);
+
+      // Close tab
+      await emptyPage.close();
+
+      await page.mouse.move(Math.random() * 100, Math.random() * 100);
+      await page.mouse.down();
+      await page.mouse.move(Math.random() * 100 + 10, Math.random() * 100 + 10);
+      await page.mouse.up();
+
       log('Getting code from Home Assistant...');
 
       // Get the code from Home Assistant

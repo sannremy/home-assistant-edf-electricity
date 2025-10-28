@@ -159,8 +159,8 @@ const getData = async () => {
       await sleep(5000);
     } else {
       const emptyPage = await browser.newPage();
-      // Wait 30 seconds for code to be sent by email
-      await sleep(30000);
+      // Wait 60 seconds for code to be sent by email
+      await sleep(60000);
 
       // Close tab
       await emptyPage.close();
@@ -252,21 +252,20 @@ const getData = async () => {
 
   log('----- ELECTRICITY -----');
 
-  log('Click on JOUR button', page.url());
-
   // Click on button
+  log('Click on JOUR button', page.url());
   await page.click('button[aria-label="Accéder à la vue JOUR"]');
   await sleep(2000);
 
+  log('Click on MOIS button', page.url());
   await page.click('button[aria-label="Accéder à la vue MOIS"]');
   await sleep(2000);
 
+  log('Click on ANNÉE button', page.url());
   await page.click('button[aria-label="Accéder à la vue ANNÉE"]');
   await sleep(2000);
 
-  await page.click('button[aria-label="Accéder à la vue HEURE"]');
-  await sleep(2000);
-
+  log('Click on JOUR button', page.url());
   await page.click('button[aria-label="Accéder à la vue JOUR"]');
   await sleep(2000);
 
@@ -358,14 +357,21 @@ const getData = async () => {
   await page.click('label[for="switch-fluid-radio-gaz"]');
   await sleep(5000);
 
-  await page.click('button[aria-label="Accéder à la vue ANNÉE"]');
-  await sleep(5000);
-
-  await page.click('button[aria-label="Accéder à la vue MOIS"]');
-  await sleep(5000);
-
+  log('Click on JOUR button', page.url());
   await page.click('button[aria-label="Accéder à la vue JOUR"]');
-  await sleep(5000);
+  await sleep(2000);
+
+  log('Click on ANNÉE button', page.url());
+  await page.click('button[aria-label="Accéder à la vue ANNÉE"]');
+  await sleep(2000);
+
+  log('Click on MOIS button', page.url());
+  await page.click('button[aria-label="Accéder à la vue MOIS"]');
+  await sleep(2000);
+
+  log('Click on JOUR button', page.url());
+  await page.click('button[aria-label="Accéder à la vue JOUR"]');
+  await sleep(2000);
 
   const jsonGas = await getDataFromSessionStorage([
     'datacache:smart-daily-gas-consumptions'

@@ -80,13 +80,14 @@ const getData = async () => {
         let foundAllPatterns = false;
         for (const keyPattern of keyPatterns) {
           if (key.includes(keyPattern)) {
+            console.log(`Key "${key}" includes pattern "${keyPattern}"`);
             foundAllPatterns = true;
           } else {
             foundAllPatterns = false;
             break;
           }
         }
-        // console.log(foundAllPatterns, key);
+
         if (foundAllPatterns) {
           console.log('Found key', key);
           return JSON.parse(sessionStorage.getItem(key)).value?.data || null;
@@ -123,13 +124,18 @@ const getData = async () => {
   await page.keyboard.press('Enter');
 
   // Wait for selector to appear
+  let alreadyLoggedIn = false;
   const emailRadioSelector = '#callback_0_1';
-  await page.waitForSelector(emailRadioSelector, {
-    timeout: 10000,
-  });
+  try {
+    await page.waitForSelector(emailRadioSelector, {
+      timeout: 15000,
+    });
+  } catch (e) {
+    alreadyLoggedIn = (page.url() === 'https://suiviconso.edf.fr/comprendre')
+  }
 
   // Select "email" to send MFA code
-  if (await page.$(emailRadioSelector) !== null) {
+  if (!alreadyLoggedIn && await page.$(emailRadioSelector) !== null) {
     // Select radio button
     await page.click(emailRadioSelector); // "Email"
     await sleep(1000);
@@ -236,6 +242,9 @@ const getData = async () => {
   // Scroll to bottom of page
   await page.evaluate(async () => {
     await new Promise((resolve) => {
+      // Scroll top
+      window.scrollTo(0, 0);
+
       // console.log('Start scrolling');
       const timer = setInterval(() => {
         window.scrollBy(0, 300);
@@ -357,6 +366,26 @@ const getData = async () => {
   await page.click('label[for="switch-fluid-radio-gaz"]');
   await sleep(5000);
 
+  // Scroll to bottom of page
+  await page.evaluate(async () => {
+    await new Promise((resolve) => {
+      // Scroll top
+      window.scrollTo(0, 0);
+
+      // console.log('Start scrolling');
+      const timer = setInterval(() => {
+        window.scrollBy(0, 300);
+        // console.log('Scrolling...', document.body.scrollHeight);
+
+        if (document.querySelector('button[aria-label="Accéder à la vue JOUR"]')) {
+          // console.log('Stop scrolling');
+          clearInterval(timer);
+          resolve();
+        }
+      }, 1000);
+    });
+  });
+
   log('Click on JOUR button', page.url());
   await page.click('button[aria-label="Accéder à la vue JOUR"]');
   await sleep(2000);
@@ -374,7 +403,8 @@ const getData = async () => {
   await sleep(2000);
 
   const jsonGas = await getDataFromSessionStorage([
-    'datacache:smart-daily-gas-consumptions'
+    'daily',
+    'gas',
   ]);
 
   if (jsonGas && jsonGas.length > 0) {
